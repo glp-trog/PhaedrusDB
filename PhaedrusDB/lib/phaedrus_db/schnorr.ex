@@ -26,7 +26,8 @@ defmodule PhaedrusDB.Schnorr do
   end
 
   @spec sign_hash(<<_::256>>, privkey()) :: {:ok, sig()} | {:error, term()}
-  def sign_hash(hash32, priv) when is_binary(hash32) and byte_size(hash32) == 32 and is_binary(priv) and byte_size(priv) == 32 do
+  def sign_hash(hash32, priv)
+      when is_binary(hash32) and byte_size(hash32) == 32 and is_binary(priv) and byte_size(priv) == 32 do
     {:ok, native_sign_hash(hash32, priv)}
   rescue
     _ -> {:error, :sign_failed}
@@ -41,8 +42,8 @@ defmodule PhaedrusDB.Schnorr do
     _ -> false
   end
 
-  # NIFs
-  defp native_pubkey_from_privkey(_priv), do: :erlang.nif_error(:nif_not_loaded)
-  defp native_sign_hash(_hash32, _priv), do: :erlang.nif_error(:nif_not_loaded)
-  defp native_verify_hash(_hash32, _sig64, _pub32), do: :erlang.nif_error(:nif_not_loaded)
+  # NIFs (these names are what Rustler binds to)
+  def native_pubkey_from_privkey(_priv), do: :erlang.nif_error(:nif_not_loaded)
+  def native_sign_hash(_hash32, _priv), do: :erlang.nif_error(:nif_not_loaded)
+  def native_verify_hash(_hash32, _sig64, _pub32), do: :erlang.nif_error(:nif_not_loaded)
 end

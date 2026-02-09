@@ -4,7 +4,7 @@ use secp256k1::{schnorr::Signature, Keypair, Secp256k1, SecretKey, XOnlyPublicKe
 
 rustler::init!(
     "Elixir.PhaedrusDB.Schnorr",
-    [pubkey_from_privkey, sign_hash, verify_hash]
+    [native_pubkey_from_privkey, native_sign_hash, native_verify_hash]
 );
 
 fn bin_from_slice<'a>(env: Env<'a>, bytes: &[u8]) -> NifResult<Binary<'a>> {
@@ -14,7 +14,7 @@ fn bin_from_slice<'a>(env: Env<'a>, bytes: &[u8]) -> NifResult<Binary<'a>> {
 }
 
 #[rustler::nif]
-fn pubkey_from_privkey<'a>(env: Env<'a>, privkey: Binary<'a>) -> NifResult<Binary<'a>> {
+fn native_pubkey_from_privkey<'a>(env: Env<'a>, privkey: Binary<'a>) -> NifResult<Binary<'a>> {
     let secp = Secp256k1::new();
     let sk = SecretKey::from_slice(privkey.as_slice())
         .map_err(|_| rustler::Error::Term(Box::new("bad_privkey")))?;
@@ -26,7 +26,7 @@ fn pubkey_from_privkey<'a>(env: Env<'a>, privkey: Binary<'a>) -> NifResult<Binar
 }
 
 #[rustler::nif]
-fn sign_hash<'a>(env: Env<'a>, hash32: Binary<'a>, privkey: Binary<'a>) -> NifResult<Binary<'a>> {
+fn native_sign_hash<'a>(env: Env<'a>, hash32: Binary<'a>, privkey: Binary<'a>) -> NifResult<Binary<'a>> {
     let secp = Secp256k1::new();
 
     let msg = hash32.as_slice();
@@ -46,7 +46,7 @@ fn sign_hash<'a>(env: Env<'a>, hash32: Binary<'a>, privkey: Binary<'a>) -> NifRe
 }
 
 #[rustler::nif]
-fn verify_hash(hash32: Binary, sig64: Binary, pubkey32: Binary) -> bool {
+fn native_verify_hash(hash32: Binary, sig64: Binary, pubkey32: Binary) -> bool {
     let secp = Secp256k1::new();
 
     let msg = hash32.as_slice();
