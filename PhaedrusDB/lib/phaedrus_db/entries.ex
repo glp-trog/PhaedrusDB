@@ -48,7 +48,7 @@ defmodule PhaedrusDB.Entries do
     end
   end
 
-  @doc """List most recent entries."""
+  @doc "List most recent entries."
   def list_recent(limit \\ 20) do
     Repo.all(from e in Entry, order_by: [desc: e.inserted_at], limit: ^limit)
   end
