@@ -54,4 +54,57 @@ defmodule PhaedrusDB.Observations do
       {:ok, Repo.all(q)}
     end
   end
+
+  @doc "List recent observations across all content (newest first)." 
+  def list_recent(opts \\ %{}) when is_map(opts) do
+    limit = opts_limit(opts)
+
+    q =
+      from o in Observation,
+        order_by: [desc: o.observed_at, desc: o.inserted_at],
+        limit: ^limit
+
+    q =
+      case opts["source"] do
+        s when is_binary(s) and byte_size(s) > 0 -> from o in q, where: o.source == ^s
+        _ -> q
+      end
+
+    q =
+      case opts["tag"] do
+        t when is_binary(t) and byte_size(t) > 0 -> from o in q, where: ^t in o.tags
+        _ -> q
+      end
+
+    q =
+      case opts["since"] do
+        s when is_binary(s) and byte_size(s) > 0 ->
+          case DateTime.from_iso8601(s) do
+            {:ok, dt, _} -> from o in q, where: o.observed_at >= ^dt
+            _ -> q
+          end
+
+        _ -> q
+      end
+
+    {:ok, Repo.all(q)}
+  end
+
+  defp opts_limit(opts) do
+    limit =
+      case opts["limit"] do
+        n when is_integer(n) -> n
+        s when is_binary(s) ->
+          case Integer.parse(s) do
+            {n, _} -> n
+            :error -> 50
+          end
+
+        _ -> 50
+      end
+
+    limit
+    |> min(200)
+    |> max(1)
+  end
 end

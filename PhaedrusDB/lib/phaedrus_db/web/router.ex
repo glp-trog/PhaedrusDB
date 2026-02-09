@@ -161,6 +161,17 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
+  # GET /observations/recent?source=...&tag=...&since=...&limit=...
+  get "/observations/recent" do
+    case PhaedrusDB.observations_recent(conn.params) do
+      {:ok, items} ->
+        send_json(conn, 200, %{observations: Enum.map(items, &obs_json/1)})
+
+      {:error, reason} ->
+        send_json(conn, 400, %{error: inspect(reason)})
+    end
+  end
+
   match _ do
     send_json(conn, 404, %{error: "not_found"})
   end

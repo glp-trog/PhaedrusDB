@@ -76,6 +76,8 @@ mix run --no-halt
   - returns `{ content_id, proof?, observation: {...} }`
 - `GET /observations/:content_id?limit=50`
   - returns `{ content_id, observations:[...] }`
+- `GET /observations/recent?source=...&tag=...&since=...&limit=...`
+  - returns `{ observations:[...] }`
 
 ---
 
