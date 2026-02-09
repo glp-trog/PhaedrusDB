@@ -4,6 +4,7 @@ defmodule PhaedrusDB.Web.Router do
   use Plug.Router
 
   plug Plug.Logger
+  plug PhaedrusDB.Web.AuthPlug
   plug :match
   plug Plug.Parsers,
     parsers: [:json],

@@ -8,7 +8,15 @@ defmodule PhaedrusDB.MixProject do
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      escript: escript(),
       deps: deps()
+    ]
+  end
+
+  defp escript do
+    [
+      main_module: PhaedrusDB.CLI,
+      app: nil
     ]
   end
 
@@ -28,7 +36,8 @@ defmodule PhaedrusDB.MixProject do
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.4"},
       {:plug_cowboy, "~> 2.7"},
-      {:rustler, "~> 0.36"}
+      {:rustler, "~> 0.36"},
+      {:req, "~> 0.5"}
     ]
   end
 end

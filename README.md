@@ -34,6 +34,10 @@ This is the “ETL/OSINT wedge”: you can keep appending sightings from differe
 
 ## HTTP API
 
+### Optional auth
+If you set `PHAEDRUS_API_KEY`, all endpoints except `/health` require:
+- header `x-phaedrus-key: <key>` (or `Authorization: Bearer <key>`)
+
 Default port: `4007` (override with `PHAEDRUS_HTTP_PORT`).
 
 ### Start the server (PowerShell)
@@ -41,6 +45,9 @@ Default port: `4007` (override with `PHAEDRUS_HTTP_PORT`).
 ```powershell
 cd C:\Users\mr-ga\scripts\PhaedrusDB\PhaedrusDB
 $env:PHAEDRUS_DB_URL = "postgres://postgres:YOURPASS@localhost:5432/phaedrus_db"
+
+# optional
+# $env:PHAEDRUS_API_KEY = "change-me"
 
 mix deps.get
 mix ecto.create
@@ -89,6 +96,24 @@ mix run --no-halt
   - returns `{ sources:[{source,count,last_observed_at}] }`
 
 ---
+
+## CLI
+
+Build the executable:
+```powershell
+cd C:\Users\mr-ga\scripts\PhaedrusDB\PhaedrusDB
+mix deps.get
+mix escript.build
+```
+
+Use it:
+```powershell
+# Send an NDJSON file to a running server
+.\phaedrus_db observe-ndjson .\ingest.ndjson --url http://localhost:4007
+
+# Recent observations
+.\phaedrus_db recent --limit 20 --tag osint --tag demo
+```
 
 ## Quickstart (Windows)
 
