@@ -22,4 +22,7 @@ defmodule PhaedrusDB do
 
   @doc "Sign an entry by content id (stores pubkey+sig)." 
   defdelegate sign(content_id), to: Entries
+
+  @doc "Verify an entry signature (if present)." 
+  defdelegate verify(content_id), to: Entries
 end

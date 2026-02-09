@@ -68,4 +68,17 @@ defmodule PhaedrusDB.Entries do
       {:error, _} = err -> err
     end
   end
+
+  @doc "Verify signature on an entry (if present)."
+  def verify(content_id) do
+    with {:ok, hash} <- CryptoId.decode_content_id(content_id),
+         %Entry{} = entry <- Repo.get_by(Entry, content_hash: hash),
+         true <- is_binary(entry.sig) and is_binary(entry.pubkey) do
+      {:ok, PhaedrusDB.Schnorr.verify_hash(hash, entry.sig, entry.pubkey)}
+    else
+      nil -> {:error, :not_found}
+      false -> {:error, :unsigned}
+      {:error, _} = err -> err
+    end
+  end
 end

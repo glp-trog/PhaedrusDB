@@ -46,14 +46,21 @@ defmodule PhaedrusDB.Web.Router do
       {:ok, entry} ->
         send_json(conn, 200, %{content_id: content_id, pubkey_b64: b64(entry.pubkey), sig_b64: b64(entry.sig)})
 
-      {:error, :not_implemented} ->
-        send_json(conn, 501, %{error: "schnorr_not_implemented"})
-
       {:error, :not_found} ->
         send_json(conn, 404, %{error: "not_found"})
 
       {:error, reason} ->
         send_json(conn, 400, %{error: inspect(reason)})
+    end
+  end
+
+  # POST /entries/:content_id/verify
+  post "/entries/:content_id/verify" do
+    case PhaedrusDB.verify(content_id) do
+      {:ok, ok?} -> send_json(conn, 200, %{content_id: content_id, ok: ok?})
+      {:error, :unsigned} -> send_json(conn, 400, %{error: "unsigned"})
+      {:error, :not_found} -> send_json(conn, 404, %{error: "not_found"})
+      {:error, reason} -> send_json(conn, 400, %{error: inspect(reason)})
     end
   end
 

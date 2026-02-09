@@ -1,0 +1,15 @@
+[package]
+name = "phaedrus_schnorr"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "phaedrus_schnorr"
+crate-type = ["cdylib"]
+
+[dependencies]
+rustler = "0.36.2"
+# Use std-enabled secp256k1 for easiest Windows builds.
+# Schnorr support is included in the crate; no extra feature flag needed.
+secp256k1 = { version = "0.30", features = ["rand", "global-context"] }
+rand = "0.8"

@@ -27,7 +27,8 @@ defmodule PhaedrusDB.MixProject do
       {:ecto_sql, "~> 3.7"},
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.4"},
-      {:plug_cowboy, "~> 2.7"}
+      {:plug_cowboy, "~> 2.7"},
+      {:rustler, "~> 0.36"}
     ]
   end
 end
