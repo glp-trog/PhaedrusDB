@@ -31,4 +31,8 @@ defmodule PhaedrusDB do
 
   @doc "Stateless verify: verify provided pubkey+sig against the content id." 
   defdelegate verify_detached(content_id, pubkey, sig), to: Entries
+
+  # Observations
+  defdelegate observe(content_id, attrs), to: PhaedrusDB.Observations
+  defdelegate observations(content_id, limit \\ 50), to: PhaedrusDB.Observations, as: :list_for
 end

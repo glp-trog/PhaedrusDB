@@ -106,6 +106,34 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
+  # POST /observe {"content_id":"...","source":"...", ...optional }
+  post "/observe" do
+    with %{"content_id" => cid, "source" => _src} = attrs <- conn.body_params do
+      case PhaedrusDB.observe(cid, attrs) do
+        {:ok, obs} ->
+          send_json(conn, 200, %{id: obs.id, content_id: cid, source: obs.source, observed_at: obs.observed_at, url: obs.url, tags: obs.tags})
+
+        {:error, changeset} ->
+          send_json(conn, 400, %{error: "invalid", details: format_changeset(changeset)})
+      end
+    else
+      _ -> send_json(conn, 400, %{error: "Expected JSON body: {content_id, source, observed_at?, url?, notes?, tags?, meta?}"})
+    end
+  end
+
+  # GET /observations/:content_id
+  get "/observations/:content_id" do
+    limit = (conn.params["limit"] || "50") |> to_int(50) |> min(200) |> max(1)
+
+    case PhaedrusDB.observations(content_id, limit) do
+      {:ok, items} ->
+        send_json(conn, 200, %{content_id: content_id, observations: Enum.map(items, &obs_json/1)})
+
+      {:error, reason} ->
+        send_json(conn, 400, %{error: inspect(reason)})
+    end
+  end
+
   match _ do
     send_json(conn, 404, %{error: "not_found"})
   end
@@ -135,5 +163,31 @@ defmodule PhaedrusDB.Web.Router do
       "pubkey_b64" => b64(entry.pubkey),
       "sig_b64" => b64(entry.sig)
     }
+  end
+
+  defp obs_json(o) do
+    %{
+      id: o.id,
+      source: o.source,
+      observed_at: o.observed_at,
+      url: o.url,
+      notes: o.notes,
+      tags: o.tags,
+      meta: o.meta,
+      inserted_at: o.inserted_at
+    }
+  end
+
+  defp to_int(s, default) when is_binary(s) do
+    case Integer.parse(s) do
+      {n, _} -> n
+      :error -> default
+    end
+  end
+
+  defp format_changeset(%Ecto.Changeset{} = cs) do
+    Ecto.Changeset.traverse_errors(cs, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {k, v}, acc -> String.replace(acc, "%{#{k}}", to_string(v)) end)
+    end)
   end
 end

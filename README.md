@@ -61,6 +61,10 @@ Endpoints:
 - `POST /entries/:content_id/verify` → `{ content_id, ok }` (requires stored signature)
 - `POST /verify` with JSON `{ content_id, pubkey_b64, sig_b64 }` → `{ content_id, ok }` (stateless)
 
+Observations (timeline/sightings):
+- `POST /observe` with JSON `{ content_id, source, observed_at?, url?, notes?, tags?, meta? }`
+- `GET /observations/:content_id?limit=50` → `{ content_id, observations:[...] }`
+
 Default port: `4007` (override with `PHAEDRUS_HTTP_PORT`).
 
 ## Quickstart (Windows)
