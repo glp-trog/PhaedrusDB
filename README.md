@@ -34,6 +34,24 @@ Under the hood:
 
 Planned: Schnorr signatures over `content_hash` for tamper-evidence/authorship.
 
+## HTTP API (new)
+
+Start the server:
+```bash
+set PHAEDRUS_DB_URL=postgres://postgres:YOURPASS@localhost:5432/phaedrus_db
+mix deps.get
+mix ecto.create
+mix ecto.migrate
+mix run --no-halt
+```
+
+Endpoints:
+- `GET /health`
+- `POST /entries` with JSON `{ "payload": { ... } }` → `{ "content_id": "..." }`
+- `GET /entries/:content_id` → `{ content_id, payload, inserted_at }`
+
+Default port: `4007` (override with `PHAEDRUS_HTTP_PORT`).
+
 ## Quickstart (Windows)
 
 ### 0) Toolchain note (important)

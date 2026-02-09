@@ -19,4 +19,7 @@ defmodule PhaedrusDB do
 
   @doc "Fetch an entry by content id." 
   defdelegate get(content_id), to: Entries
+
+  @doc "Sign an entry by content id (stores pubkey+sig)." 
+  defdelegate sign(content_id), to: Entries
 end

@@ -1,5 +1,5 @@
 defmodule PhaedrusDB.DataCase do
-  @moduledoc """Test helpers for working with the database."""
+  @moduledoc "Test helpers for working with the database."
 
   use ExUnit.CaseTemplate
 
@@ -22,3 +22,4 @@ defmodule PhaedrusDB.DataCase do
     :ok
   end
 end
+

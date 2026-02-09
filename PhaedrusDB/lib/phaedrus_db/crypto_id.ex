@@ -59,13 +59,13 @@ defmodule PhaedrusDB.CryptoId do
     json_like |> canonical_bytes() |> sha256()
   end
 
-  @doc """Base64url (no padding) content id suitable for URLs."""
+  @doc "Base64url (no padding) content id suitable for URLs."
   @spec content_id(binary()) :: binary()
   def content_id(<<_::binary-size(32)>> = hash) do
     Base.url_encode64(hash, padding: false)
   end
 
-  @doc """Decode base64url content id back to raw 32-byte hash."""
+  @doc "Decode base64url content id back to raw 32-byte hash."
   @spec decode_content_id(binary()) :: {:ok, binary()} | {:error, term()}
   def decode_content_id(content_id) when is_binary(content_id) do
     case Base.url_decode64(content_id, padding: false) do
@@ -80,3 +80,8 @@ defmodule PhaedrusDB.CryptoId do
   defp key_to_string(k) when is_integer(k), do: Integer.to_string(k)
   defp key_to_string(k), do: to_string(k)
 end
+
+
+
+
+

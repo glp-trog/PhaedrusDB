@@ -6,6 +6,7 @@ defmodule PhaedrusDB.MixProject do
       app: :phaedrus_db,
       version: "0.1.0",
       elixir: "~> 1.14",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -18,11 +19,15 @@ defmodule PhaedrusDB.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
   defp deps do
     [
       {:ecto_sql, "~> 3.7"},
       {:postgrex, ">= 0.0.0"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:plug_cowboy, "~> 2.7"}
     ]
   end
 end

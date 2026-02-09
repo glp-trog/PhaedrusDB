@@ -1,5 +1,5 @@
 defmodule PhaedrusDB.Entry do
-  @moduledoc """An immutable JSONB payload addressed by a cryptographic content hash."""
+  @moduledoc "An immutable JSONB payload addressed by a cryptographic content hash."
 
   use Ecto.Schema
   import Ecto.Changeset
@@ -25,3 +25,4 @@ defmodule PhaedrusDB.Entry do
     |> unique_constraint(:content_hash)
   end
 end
+

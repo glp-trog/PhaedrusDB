@@ -52,4 +52,20 @@ defmodule PhaedrusDB.Entries do
   def list_recent(limit \\ 20) do
     Repo.all(from e in Entry, order_by: [desc: e.inserted_at], limit: ^limit)
   end
+
+  @doc "Sign an existing entry (stores pubkey+sig)."
+  def sign(content_id) do
+    with {:ok, hash} <- CryptoId.decode_content_id(content_id),
+         %Entry{} = entry <- Repo.get_by(Entry, content_hash: hash),
+         priv <- PhaedrusDB.Keyring.privkey!(),
+         {:ok, pub} <- PhaedrusDB.Schnorr.pubkey_from_privkey(priv),
+         {:ok, sig} <- PhaedrusDB.Schnorr.sign_hash(hash, priv) do
+      entry
+      |> Entry.changeset(%{pubkey: pub, sig: sig})
+      |> Repo.update()
+    else
+      nil -> {:error, :not_found}
+      {:error, _} = err -> err
+    end
+  end
 end
