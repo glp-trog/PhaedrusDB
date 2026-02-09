@@ -74,6 +74,9 @@ mix run --no-halt
   - either `{ content_id, source, observed_at?, url?, notes?, tags?, meta? }`
   - or `{ payload, sign?: true|false, source, observed_at?, url?, notes?, tags?, meta? }`
   - returns `{ content_id, proof?, observation: {...} }`
+- `POST /observe/ndjson` (Content-Type: `application/x-ndjson`)
+  - body: one JSON object per line (same shapes as `POST /observe`)
+  - returns `{ ok, ingested, errors, results:[...] }`
 - `GET /observations/:content_id?limit=50`
   - returns `{ content_id, observations:[...] }`
 - `GET /observations/recent?source=...&tag=...&since=...&before=...&limit=...`

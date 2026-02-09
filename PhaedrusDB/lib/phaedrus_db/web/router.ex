@@ -7,6 +7,7 @@ defmodule PhaedrusDB.Web.Router do
   plug :match
   plug Plug.Parsers,
     parsers: [:json],
+    pass: ["application/x-ndjson"],
     json_decoder: Jason,
     body_reader: {PhaedrusDB.Web.BodyReader, :read_body, []}
 
@@ -106,6 +107,42 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
+  # POST /observe/ndjson (stream/batch)
+  # Content-Type: application/x-ndjson
+  # Body: one JSON object per line. Each line can be the same shape accepted by POST /observe.
+  post "/observe/ndjson" do
+    {:ok, body, _conn} = Plug.Conn.read_body(conn)
+
+    lines =
+      body
+      |> String.split(["\n", "\r\n"], trim: true)
+      |> Enum.reject(&(&1 == ""))
+
+    {results, ok_count, err_count} =
+      Enum.reduce(Enum.with_index(lines, 1), {[], 0, 0}, fn {line, idx}, {acc, okc, errc} ->
+        case Jason.decode(line) do
+          {:ok, params} when is_map(params) ->
+            case handle_observe_params(params) do
+              {:ok, res} ->
+                {[Map.put(res, :line, idx) | acc], okc + 1, errc}
+
+              {:error, reason} ->
+                {[%{line: idx, ok: false, error: format_reason(reason)} | acc], okc, errc + 1}
+            end
+
+          {:ok, _} ->
+            {[%{line: idx, ok: false, error: "expected_object"} | acc], okc, errc + 1}
+
+          {:error, _} ->
+            {[%{line: idx, ok: false, error: "bad_json"} | acc], okc, errc + 1}
+        end
+      end)
+
+    results = Enum.reverse(results)
+
+    send_json(conn, 200, %{ok: err_count == 0, ingested: ok_count, errors: err_count, results: results})
+  end
+
   # POST /observe
   # Either:
   # - {"content_id":"...","source":"...", ...}
@@ -114,37 +151,15 @@ defmodule PhaedrusDB.Web.Router do
   post "/observe" do
     params = conn.body_params
 
-    cond do
-      is_map(params["payload"]) and is_binary(params["source"]) ->
-        payload = params["payload"]
-        sign? = params["sign"] == true
+    case handle_observe_params(params) do
+      {:ok, res} ->
+        send_json(conn, 200, res)
 
-        attrs = Map.drop(params, ["payload", "sign"]) 
+      {:error, %Ecto.Changeset{} = cs} ->
+        send_json(conn, 400, %{error: "invalid", details: format_changeset(cs)})
 
-        case PhaedrusDB.Observations.observe_payload(payload, sign?, attrs) do
-          {:ok, res} ->
-            send_json(conn, 200, %{content_id: res.content_id, proof: res.proof, observation: obs_json(res.observation)})
-
-          {:error, %Ecto.Changeset{} = changeset} ->
-            send_json(conn, 400, %{error: "invalid", details: format_changeset(changeset)})
-
-          {:error, reason} ->
-            send_json(conn, 400, %{error: inspect(reason)})
-        end
-
-      is_binary(params["content_id"]) and is_binary(params["source"]) ->
-        cid = params["content_id"]
-
-        case PhaedrusDB.observe(cid, params) do
-          {:ok, obs} ->
-            send_json(conn, 200, %{id: obs.id, content_id: cid, source: obs.source, observed_at: obs.observed_at, url: obs.url, tags: obs.tags})
-
-          {:error, changeset} ->
-            send_json(conn, 400, %{error: "invalid", details: format_changeset(changeset)})
-        end
-
-      true ->
-        send_json(conn, 400, %{error: "Expected JSON body: {content_id, source, ...} OR {payload, sign?, source, ...}"})
+      {:error, reason} ->
+        send_json(conn, 400, %{error: format_reason(reason)})
     end
   end
 
@@ -247,4 +262,35 @@ defmodule PhaedrusDB.Web.Router do
       Enum.reduce(opts, msg, fn {k, v}, acc -> String.replace(acc, "%{#{k}}", to_string(v)) end)
     end)
   end
+
+  defp handle_observe_params(params) when is_map(params) do
+    cond do
+      is_map(params["payload"]) and is_binary(params["source"]) ->
+        payload = params["payload"]
+        sign? = params["sign"] == true
+        attrs = Map.drop(params, ["payload", "sign"])
+
+        case PhaedrusDB.Observations.observe_payload(payload, sign?, attrs) do
+          {:ok, res} ->
+            {:ok, %{content_id: res.content_id, proof: res.proof, observation: obs_json(res.observation)}}
+
+          {:error, _} = err ->
+            err
+        end
+
+      is_binary(params["content_id"]) and is_binary(params["source"]) ->
+        cid = params["content_id"]
+
+        case PhaedrusDB.observe(cid, params) do
+          {:ok, obs} -> {:ok, %{id: obs.id, content_id: cid, source: obs.source, observed_at: obs.observed_at, url: obs.url, tags: obs.tags}}
+          {:error, _} = err -> err
+        end
+
+      true ->
+        {:error, :bad_params}
+    end
+  end
+
+  defp format_reason(:bad_params), do: "Expected JSON body: {content_id, source, ...} OR {payload, sign?, source, ...}"
+  defp format_reason(other), do: inspect(other)
 end
