@@ -72,8 +72,18 @@ defmodule PhaedrusDB.Observations do
 
     q =
       case opts["tag"] do
-        t when is_binary(t) and byte_size(t) > 0 -> from o in q, where: ^t in o.tags
-        _ -> q
+        tags when is_list(tags) ->
+          tags = tags |> Enum.filter(&is_binary/1) |> Enum.map(&String.trim/1) |> Enum.filter(&(byte_size(&1) > 0))
+
+          Enum.reduce(tags, q, fn t, acc ->
+            from o in acc, where: ^t in o.tags
+          end)
+
+        t when is_binary(t) and byte_size(t) > 0 ->
+          from o in q, where: ^t in o.tags
+
+        _ ->
+          q
       end
 
     q =
@@ -86,6 +96,33 @@ defmodule PhaedrusDB.Observations do
 
         _ -> q
       end
+
+    {:ok, Repo.all(q)}
+  end
+
+  @doc "Top sources by observation count." 
+  def top_sources(opts \\ %{}) when is_map(opts) do
+    limit = opts_limit(opts)
+
+    base = from o in Observation
+
+    base =
+      case opts["since"] do
+        s when is_binary(s) and byte_size(s) > 0 ->
+          case DateTime.from_iso8601(s) do
+            {:ok, dt, _} -> from o in base, where: o.observed_at >= ^dt
+            _ -> base
+          end
+
+        _ -> base
+      end
+
+    q =
+      from o in base,
+        group_by: o.source,
+        select: %{source: o.source, count: count(o.id), last_observed_at: max(o.observed_at)},
+        order_by: [desc: count(o.id)],
+        limit: ^limit
 
     {:ok, Repo.all(q)}
   end

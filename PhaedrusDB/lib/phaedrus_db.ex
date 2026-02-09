@@ -36,4 +36,5 @@ defmodule PhaedrusDB do
   defdelegate observe(content_id, attrs), to: PhaedrusDB.Observations
   defdelegate observations(content_id, limit \\ 50), to: PhaedrusDB.Observations, as: :list_for
   defdelegate observations_recent(opts \\ %{}), to: PhaedrusDB.Observations, as: :list_recent
+  defdelegate sources(opts \\ %{}), to: PhaedrusDB.Observations, as: :top_sources
 end

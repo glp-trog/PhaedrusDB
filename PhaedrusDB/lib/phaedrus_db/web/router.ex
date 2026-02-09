@@ -160,6 +160,17 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
+  # GET /sources?since=...&limit=...
+  get "/sources" do
+    case PhaedrusDB.sources(conn.params) do
+      {:ok, items} ->
+        send_json(conn, 200, %{sources: items})
+
+      {:error, reason} ->
+        send_json(conn, 400, %{error: inspect(reason)})
+    end
+  end
+
   # GET /observations/:content_id
   get "/observations/:content_id" do
     limit = (conn.params["limit"] || "50") |> to_int(50) |> min(200) |> max(1)
@@ -207,6 +218,7 @@ defmodule PhaedrusDB.Web.Router do
   defp obs_json(o) do
     %{
       id: o.id,
+      content_id: PhaedrusDB.CryptoIdHelpers.content_id_from_hash(o.content_hash),
       source: o.source,
       observed_at: o.observed_at,
       url: o.url,
