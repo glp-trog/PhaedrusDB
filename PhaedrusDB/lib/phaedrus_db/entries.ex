@@ -81,4 +81,13 @@ defmodule PhaedrusDB.Entries do
       {:error, _} = err -> err
     end
   end
+
+  @doc "Stateless verify: verify a provided signature/pubkey against the content id."
+  def verify_detached(content_id, pubkey, sig) when is_binary(pubkey) and is_binary(sig) do
+    with {:ok, hash} <- CryptoId.decode_content_id(content_id) do
+      {:ok, PhaedrusDB.Schnorr.verify_hash(hash, sig, pubkey)}
+    end
+  end
+
+  def verify_detached(_content_id, _pubkey, _sig), do: {:error, :bad_params}
 end

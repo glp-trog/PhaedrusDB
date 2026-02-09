@@ -30,7 +30,7 @@ defmodule PhaedrusDB.Web.Router do
   get "/entries/:content_id" do
     case PhaedrusDB.get(content_id) do
       {:ok, entry} ->
-        send_json(conn, 200, %{content_id: content_id, payload: entry.payload, inserted_at: entry.inserted_at})
+        send_json(conn, 200, %{content_id: content_id, payload: entry.payload, inserted_at: entry.inserted_at, pubkey_b64: b64(entry.pubkey), sig_b64: b64(entry.sig)})
 
       {:error, :not_found} ->
         send_json(conn, 404, %{error: "not_found"})
@@ -64,6 +64,18 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
+  # POST /verify {"content_id":"...","pubkey_b64":"...","sig_b64":"..."}
+  post "/verify" do
+    with %{"content_id" => cid, "pubkey_b64" => pub_b64, "sig_b64" => sig_b64} <- conn.body_params,
+         {:ok, pub} <- b64d(pub_b64),
+         {:ok, sig} <- b64d(sig_b64),
+         {:ok, ok?} <- PhaedrusDB.verify_detached(cid, pub, sig) do
+      send_json(conn, 200, %{content_id: cid, ok: ok?})
+    else
+      _ -> send_json(conn, 400, %{error: "Expected JSON body: {content_id,pubkey_b64,sig_b64}"})
+    end
+  end
+
   match _ do
     send_json(conn, 404, %{error: "not_found"})
   end
@@ -78,4 +90,11 @@ defmodule PhaedrusDB.Web.Router do
 
   defp b64(nil), do: nil
   defp b64(bin) when is_binary(bin), do: Base.encode64(bin)
+
+  defp b64d(s) when is_binary(s) do
+    case Base.decode64(s) do
+      {:ok, bin} -> {:ok, bin}
+      :error -> {:error, :bad_base64}
+    end
+  end
 end

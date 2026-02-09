@@ -25,4 +25,7 @@ defmodule PhaedrusDB do
 
   @doc "Verify an entry signature (if present)." 
   defdelegate verify(content_id), to: Entries
+
+  @doc "Stateless verify: verify provided pubkey+sig against the content id." 
+  defdelegate verify_detached(content_id, pubkey, sig), to: Entries
 end

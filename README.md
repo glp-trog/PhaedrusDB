@@ -32,9 +32,16 @@ Under the hood:
 - `content_hash = sha256(canonical_bytes(payload))`
 - `content_id` is base64url(hash)
 
-Planned: Schnorr signatures over `content_hash` for tamper-evidence/authorship.
+## Schnorr signatures (BIP340, secp256k1)
+PhaedrusDB can optionally sign entries (tamper-evidence/authorship) using **BIP340 Schnorr** over secp256k1.
 
-## HTTP API (new)
+Key storage (local file):
+- default: `./phaedrus_key.json`
+- override with `PHAEDRUS_KEY_PATH`
+
+**Back up this key file.** Changing it changes signing identity.
+
+## HTTP API
 
 Start the server:
 ```bash
@@ -48,7 +55,10 @@ mix run --no-halt
 Endpoints:
 - `GET /health`
 - `POST /entries` with JSON `{ "payload": { ... } }` → `{ "content_id": "..." }`
-- `GET /entries/:content_id` → `{ content_id, payload, inserted_at }`
+- `GET /entries/:content_id` → `{ content_id, payload, inserted_at, pubkey_b64?, sig_b64? }`
+- `POST /entries/:content_id/sign` → `{ content_id, pubkey_b64, sig_b64 }`
+- `POST /entries/:content_id/verify` → `{ content_id, ok }` (requires stored signature)
+- `POST /verify` with JSON `{ content_id, pubkey_b64, sig_b64 }` → `{ content_id, ok }` (stateless)
 
 Default port: `4007` (override with `PHAEDRUS_HTTP_PORT`).
 
