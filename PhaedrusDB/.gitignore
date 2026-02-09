@@ -10,7 +10,7 @@
 # Local secrets/keys
 phaedrus_key.json
 ingest.ndjson
-phaedrus_db
+./phaedrus_db
 
 # Env
 .env
