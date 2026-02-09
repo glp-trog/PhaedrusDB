@@ -3,6 +3,13 @@
 /_build
 /.elixir_ls
 
+# Rustler
+/native/**/target
+/priv/native/*.dll
+
+# Local secrets/keys
+phaedrus_key.json
+
 # Env
 .env
 
