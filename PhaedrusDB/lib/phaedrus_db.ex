@@ -17,6 +17,9 @@ defmodule PhaedrusDB do
   @doc "Store a JSON payload and return its content id." 
   defdelegate put(payload), to: Entries
 
+  @doc "Store + sign a JSON payload and return its content id + signature." 
+  defdelegate put_and_sign(payload), to: Entries
+
   @doc "Fetch an entry by content id." 
   defdelegate get(content_id), to: Entries
 

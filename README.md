@@ -54,8 +54,9 @@ mix run --no-halt
 
 Endpoints:
 - `GET /health`
-- `POST /entries` with JSON `{ "payload": { ... } }` → `{ "content_id": "..." }`
-- `GET /entries/:content_id` → `{ content_id, payload, inserted_at, pubkey_b64?, sig_b64? }`
+- `POST /entries` with JSON `{ "payload": { ... }, "sign": true|false }` → `{ "content_id": "...", "proof"?: {...} }`
+- `GET /entries/:content_id` → `{ content_id, payload, inserted_at, pubkey_b64?, sig_b64?, proof }`
+- `GET /proof/:content_id` → `{ content_id, proof }` (no payload)
 - `POST /entries/:content_id/sign` → `{ content_id, pubkey_b64, sig_b64 }`
 - `POST /entries/:content_id/verify` → `{ content_id, ok }` (requires stored signature)
 - `POST /verify` with JSON `{ content_id, pubkey_b64, sig_b64 }` → `{ content_id, ok }` (stateless)

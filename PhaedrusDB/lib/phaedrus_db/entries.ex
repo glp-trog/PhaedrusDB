@@ -69,6 +69,14 @@ defmodule PhaedrusDB.Entries do
     end
   end
 
+  @doc "Put then sign (convenience)."
+  def put_and_sign(payload) do
+    with {:ok, res} <- put(payload),
+         {:ok, entry} <- sign(res.content_id) do
+      {:ok, %{content_id: res.content_id, content_hash: res.content_hash, entry: entry}}
+    end
+  end
+
   @doc "Verify signature on an entry (if present)."
   def verify(content_id) do
     with {:ok, hash} <- CryptoId.decode_content_id(content_id),
