@@ -23,7 +23,7 @@ defmodule PhaedrusDB.CryptoId do
   @type json_scalar :: nil | boolean() | number() | binary()
   @type json_value :: json_scalar() | [json_value()] | %{optional(binary()) => json_value()}
 
-  @doc """Normalize a JSON-like Elixir term into a deterministic structure."""
+  @doc "Normalize a JSON-like Elixir term into a deterministic structure."
   @spec normalize(term()) :: term()
   def normalize(value) when is_map(value) do
     value
@@ -42,18 +42,18 @@ defmodule PhaedrusDB.CryptoId do
           "payload contains non-JSON value: #{inspect(other)} (allowed: maps/lists/strings/numbers/bools/nil)"
   end
 
-  @doc """Return canonical bytes for hashing/signing."""
+  @doc "Return canonical bytes for hashing/signing."
   @spec canonical_bytes(term()) :: binary()
   def canonical_bytes(json_like) do
     normalized = normalize(json_like)
     :erlang.term_to_binary(normalized, [:deterministic])
   end
 
-  @doc """Compute SHA-256 hash (32 bytes)."""
+  @doc "Compute SHA-256 hash (32 bytes)."
   @spec sha256(binary()) :: binary()
   def sha256(bytes) when is_binary(bytes), do: :crypto.hash(:sha256, bytes)
 
-  @doc """Compute content hash from a JSON-like term."""
+  @doc "Compute content hash from a JSON-like term."
   @spec content_hash(term()) :: binary()
   def content_hash(json_like) do
     json_like |> canonical_bytes() |> sha256()

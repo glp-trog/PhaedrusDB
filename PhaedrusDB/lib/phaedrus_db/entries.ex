@@ -1,5 +1,5 @@
 defmodule PhaedrusDB.Entries do
-  @moduledoc """Public API for content-addressed JSONB entries."""
+  @moduledoc "Public API for content-addressed JSONB entries."
 
   import Ecto.Query, warn: false
 
@@ -36,7 +36,7 @@ defmodule PhaedrusDB.Entries do
     end
   end
 
-  @doc """Fetch by content id (base64url sha256)."""
+  @doc "Fetch by content id (base64url sha256)."
   @spec get(binary()) :: {:ok, Entry.t()} | {:error, term()}
   def get(content_id) do
     with {:ok, hash} <- CryptoId.decode_content_id(content_id),
