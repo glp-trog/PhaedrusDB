@@ -14,11 +14,25 @@ PhaedrusDB is a robust database solution for high-performance data handling.
 ## Commands
 - `mix ecto.create`: Create the database.
 - `mix ecto.migrate`: Run database migrations.
-- `mix run`: Execute scripts.
 - `iex -S mix`: Start the interactive Elixir shell.
-- `PhaedrusDB.CSVParser.parse_file("path/to/file.csv")`: Import CSV data.
-- `PhaedrusDB.Repo.aggregate(PhaedrusDB.Model, :count, :id)`: Count rows.
-- `PhaedrusDB.Repo.get(PhaedrusDB.Model, id)`: Retrieve a record by ID.
+
+## Content-addressed JSONB (current)
+PhaedrusDB currently supports storing JSONB payloads addressed by a cryptographic content hash.
+
+Example (in `iex -S mix`):
+```elixir
+{:ok, res} = PhaedrusDB.put(%{"hello" => "world", "n" => 1})
+res.content_id
+{:ok, entry} = PhaedrusDB.get(res.content_id)
+entry.payload
+```
+
+Under the hood:
+- payload is canonicalized deterministically
+- `content_hash = sha256(canonical_bytes(payload))`
+- `content_id` is base64url(hash)
+
+Planned: Schnorr signatures over `content_hash` for tamper-evidence/authorship.
 
 ## Quickstart (Windows)
 
