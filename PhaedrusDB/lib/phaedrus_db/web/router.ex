@@ -106,18 +106,45 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
-  # POST /observe {"content_id":"...","source":"...", ...optional }
+  # POST /observe
+  # Either:
+  # - {"content_id":"...","source":"...", ...}
+  # or:
+  # - {"payload":{...},"sign":true|false,"source":"...", ...}
   post "/observe" do
-    with %{"content_id" => cid, "source" => _src} = attrs <- conn.body_params do
-      case PhaedrusDB.observe(cid, attrs) do
-        {:ok, obs} ->
-          send_json(conn, 200, %{id: obs.id, content_id: cid, source: obs.source, observed_at: obs.observed_at, url: obs.url, tags: obs.tags})
+    params = conn.body_params
 
-        {:error, changeset} ->
-          send_json(conn, 400, %{error: "invalid", details: format_changeset(changeset)})
-      end
-    else
-      _ -> send_json(conn, 400, %{error: "Expected JSON body: {content_id, source, observed_at?, url?, notes?, tags?, meta?}"})
+    cond do
+      is_map(params["payload"]) and is_binary(params["source"]) ->
+        payload = params["payload"]
+        sign? = params["sign"] == true
+
+        attrs = Map.drop(params, ["payload", "sign"]) 
+
+        case PhaedrusDB.Observations.observe_payload(payload, sign?, attrs) do
+          {:ok, res} ->
+            send_json(conn, 200, %{content_id: res.content_id, proof: res.proof, observation: obs_json(res.observation)})
+
+          {:error, %Ecto.Changeset{} = changeset} ->
+            send_json(conn, 400, %{error: "invalid", details: format_changeset(changeset)})
+
+          {:error, reason} ->
+            send_json(conn, 400, %{error: inspect(reason)})
+        end
+
+      is_binary(params["content_id"]) and is_binary(params["source"]) ->
+        cid = params["content_id"]
+
+        case PhaedrusDB.observe(cid, params) do
+          {:ok, obs} ->
+            send_json(conn, 200, %{id: obs.id, content_id: cid, source: obs.source, observed_at: obs.observed_at, url: obs.url, tags: obs.tags})
+
+          {:error, changeset} ->
+            send_json(conn, 400, %{error: "invalid", details: format_changeset(changeset)})
+        end
+
+      true ->
+        send_json(conn, 400, %{error: "Expected JSON body: {content_id, source, ...} OR {payload, sign?, source, ...}"})
     end
   end
 

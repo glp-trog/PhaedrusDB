@@ -63,6 +63,7 @@ Endpoints:
 
 Observations (timeline/sightings):
 - `POST /observe` with JSON `{ content_id, source, observed_at?, url?, notes?, tags?, meta? }`
+- `POST /observe` with JSON `{ payload, sign?: true|false, source, observed_at?, url?, notes?, tags?, meta? }`
 - `GET /observations/:content_id?limit=50` → `{ content_id, observations:[...] }`
 
 Default port: `4007` (override with `PHAEDRUS_HTTP_PORT`).
