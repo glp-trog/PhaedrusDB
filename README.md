@@ -76,7 +76,10 @@ mix run --no-halt
   - returns `{ content_id, proof?, observation: {...} }`
 - `POST /observe/ndjson` (Content-Type: `application/x-ndjson`)
   - body: one JSON object per line (same shapes as `POST /observe`)
-  - returns `{ ok, ingested, errors, results:[...] }`
+  - default returns JSON `{ ok, ingested, errors, results:[...] }`
+  - `?mode=ndjson` returns `application/x-ndjson` where:
+    - first line is a summary object `{ ok, ingested, errors, max_bytes, max_lines }`
+    - subsequent lines are per-row result objects
 - `GET /observations/:content_id?limit=50`
   - returns `{ content_id, observations:[...] }`
 - `GET /observations/recent?source=...&tag=...&since=...&before=...&limit=...`

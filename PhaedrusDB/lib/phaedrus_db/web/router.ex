@@ -111,6 +111,9 @@ defmodule PhaedrusDB.Web.Router do
   # Content-Type: application/x-ndjson
   # Body: one JSON object per line. Each line can be the same shape accepted by POST /observe.
   post "/observe/ndjson" do
+    # If mode=ndjson, respond as NDJSON (one result per line) to keep response streaming-friendly.
+    mode = conn.params["mode"]
+
     {:ok, body, _conn} = Plug.Conn.read_body(conn)
 
     lines =
@@ -118,29 +121,47 @@ defmodule PhaedrusDB.Web.Router do
       |> String.split(["\n", "\r\n"], trim: true)
       |> Enum.reject(&(&1 == ""))
 
-    {results, ok_count, err_count} =
-      Enum.reduce(Enum.with_index(lines, 1), {[], 0, 0}, fn {line, idx}, {acc, okc, errc} ->
-        case Jason.decode(line) do
-          {:ok, params} when is_map(params) ->
-            case handle_observe_params(params) do
-              {:ok, res} ->
-                {[Map.put(res, :line, idx) | acc], okc + 1, errc}
+    if length(lines) > PhaedrusDB.Web.BodyReader.max_lines() do
+      send_json(conn, 413, %{error: "too_many_lines", max_lines: PhaedrusDB.Web.BodyReader.max_lines()})
+    else
+      {results, ok_count, err_count} =
+        Enum.reduce(Enum.with_index(lines, 1), {[], 0, 0}, fn {line, idx}, {acc, okc, errc} ->
+          case Jason.decode(line) do
+            {:ok, params} when is_map(params) ->
+              case handle_observe_params(params) do
+                {:ok, res} ->
+                  item = Map.put(res, :line, idx)
+                  {[item | acc], okc + 1, errc}
 
-              {:error, reason} ->
-                {[%{line: idx, ok: false, error: format_reason(reason)} | acc], okc, errc + 1}
-            end
+                {:error, reason} ->
+                  {[%{line: idx, ok: false, error: format_reason(reason)} | acc], okc, errc + 1}
+              end
 
-          {:ok, _} ->
-            {[%{line: idx, ok: false, error: "expected_object"} | acc], okc, errc + 1}
+            {:ok, _} ->
+              {[%{line: idx, ok: false, error: "expected_object"} | acc], okc, errc + 1}
 
-          {:error, _} ->
-            {[%{line: idx, ok: false, error: "bad_json"} | acc], okc, errc + 1}
-        end
-      end)
+            {:error, _} ->
+              {[%{line: idx, ok: false, error: "bad_json"} | acc], okc, errc + 1}
+          end
+        end)
 
-    results = Enum.reverse(results)
+      results = Enum.reverse(results)
 
-    send_json(conn, 200, %{ok: err_count == 0, ingested: ok_count, errors: err_count, results: results})
+      if mode == "ndjson" do
+        conn = put_resp_content_type(conn, "application/x-ndjson")
+
+        header = Jason.encode!(%{ok: err_count == 0, ingested: ok_count, errors: err_count, max_bytes: PhaedrusDB.Web.BodyReader.max_bytes(), max_lines: PhaedrusDB.Web.BodyReader.max_lines()})
+
+        body =
+          Enum.reduce(results, header <> "\n", fn item, acc ->
+            acc <> Jason.encode!(item) <> "\n"
+          end)
+
+        send_resp(conn, 200, body)
+      else
+        send_json(conn, 200, %{ok: err_count == 0, ingested: ok_count, errors: err_count, results: results})
+      end
+    end
   end
 
   # POST /observe

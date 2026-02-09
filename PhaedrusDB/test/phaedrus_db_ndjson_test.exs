@@ -23,5 +23,19 @@ defmodule PhaedrusDB.NdjsonIngestTest do
     assert resp["ingested"] == 2
     assert is_list(resp["results"])
     assert length(resp["results"]) == 2
+
+    # ndjson response mode
+    conn2 =
+      Plug.Test.conn(:post, "/observe/ndjson?mode=ndjson", body)
+      |> Plug.Conn.put_req_header("content-type", "application/x-ndjson")
+
+    conn2 = PhaedrusDB.Web.Router.call(conn2, [])
+    assert conn2.status == 200
+    assert Plug.Conn.get_resp_header(conn2, "content-type") |> Enum.any?(&String.contains?(&1, "application/x-ndjson"))
+
+    lines = String.split(conn2.resp_body, ["\n", "\r\n"], trim: true)
+    assert length(lines) == 3
+    summary = Jason.decode!(Enum.at(lines, 0))
+    assert summary["ingested"] == 2
   end
 end
