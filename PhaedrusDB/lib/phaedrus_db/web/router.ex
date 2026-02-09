@@ -148,6 +148,18 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
+  # GET /observations/recent?source=...&tag=...&since=...&limit=...
+  # IMPORTANT: this must be defined before /observations/:content_id
+  get "/observations/recent" do
+    case PhaedrusDB.observations_recent(conn.params) do
+      {:ok, items} ->
+        send_json(conn, 200, %{observations: Enum.map(items, &obs_json/1)})
+
+      {:error, reason} ->
+        send_json(conn, 400, %{error: inspect(reason)})
+    end
+  end
+
   # GET /observations/:content_id
   get "/observations/:content_id" do
     limit = (conn.params["limit"] || "50") |> to_int(50) |> min(200) |> max(1)
@@ -155,17 +167,6 @@ defmodule PhaedrusDB.Web.Router do
     case PhaedrusDB.observations(content_id, limit) do
       {:ok, items} ->
         send_json(conn, 200, %{content_id: content_id, observations: Enum.map(items, &obs_json/1)})
-
-      {:error, reason} ->
-        send_json(conn, 400, %{error: inspect(reason)})
-    end
-  end
-
-  # GET /observations/recent?source=...&tag=...&since=...&limit=...
-  get "/observations/recent" do
-    case PhaedrusDB.observations_recent(conn.params) do
-      {:ok, items} ->
-        send_json(conn, 200, %{observations: Enum.map(items, &obs_json/1)})
 
       {:error, reason} ->
         send_json(conn, 400, %{error: inspect(reason)})
