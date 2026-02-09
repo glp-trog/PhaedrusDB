@@ -4,6 +4,11 @@ defmodule PhaedrusDB.CLI do
   @default_url "http://localhost:4007"
 
   def main(args) do
+    # When running as an escript, applications may not be started automatically.
+    # Req uses Finch + telemetry under the hood.
+    _ = Application.ensure_all_started(:telemetry)
+    _ = Application.ensure_all_started(:finch)
+    _ = Application.ensure_all_started(:req)
     case args do
       ["observe-ndjson", path | rest] ->
         {opts, _} = OptionParser.parse!(rest, strict: [url: :string, api_key: :string, mode: :string])

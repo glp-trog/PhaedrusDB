@@ -16,7 +16,7 @@ defmodule PhaedrusDB.MixProject do
   defp escript do
     [
       main_module: PhaedrusDB.CLI,
-      app: nil
+      app: :phaedrus_db
     ]
   end
 
