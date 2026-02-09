@@ -11,8 +11,16 @@ defmodule PhaedrusDB.Application do
   end
 
   # Don’t start the HTTP server in test.
+  # Mix is not available in escript/release runtimes.
   defp maybe_add_http(children) do
-    if Mix.env() == :test do
+    env =
+      cond do
+        Code.ensure_loaded?(Mix) and function_exported?(Mix, :env, 0) -> Mix.env()
+        is_binary(System.get_env("MIX_ENV")) -> String.to_atom(System.get_env("MIX_ENV"))
+        true -> :prod
+      end
+
+    if env == :test do
       children
     else
       children ++
