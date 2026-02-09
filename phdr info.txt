@@ -1,0 +1,77 @@
+/home/trucker/PhaedrusDB/PhaedrusDB/test/processed_twist_data_body_full.csv 
+
+PhaedrusDB.CSVParser.parse_file("/home/trucker/PhaedrusDB/PhaedrusDB/test/processed_twist_data_body_full.csv")
+
+
+use Mix.Config
+
+config :phaedrus_db, ecto_repos: [PhaedrusDB.Repo]
+
+config :phaedrus_db, PhaedrusDB.Repo,
+  database: "phaedrusdb",
+  username: "trucker",
+  password: "v1AHSRC?@",
+  hostname: "localhost"
+
+config :logger, level: :info
+
+psql -U mrg9d -d phaedrusdb -h localhost
+
+
+
+https://github.com/elixir-lang/elixir-windows-setup/releases
+
+
+/home/trucker/PhaedrusDB/PhaedrusDB/large_dataset.csv
+
+PhaedrusDB.CSVParser.parse_file("/home/trucker/PhaedrusDB/PhaedrusDB/large_dataset.csv")
+PhaedrusDB.CSVParser.parse_file("/home/trucker/PhaedrusDB/PhaedrusDB/large_dataset2.csv")
+
+
+iex -S mix
+
+import Ecto.Query
+
+{:ok, _pid} = PhaedrusDB.Chain.start_link([])
+PhaedrusDB.Chain.add_block("Row 1 Data")
+PhaedrusDB.Chain.get_chain()
+
+# Show help screen
+PhaedrusDB.Dashboard.help()
+
+# Count all records
+PhaedrusDB.Dashboard.count_all()
+
+# List 5 sample rows
+PhaedrusDB.Dashboard.list_sample()
+
+# Search for a specific twist value
+PhaedrusDB.Dashboard.search_twist(23)
+
+# Show how many rows have each twist_value
+PhaedrusDB.Dashboard.group_by_twist()
+
+# Find all entries with twist_value between 50 and 100
+PhaedrusDB.Dashboard.range_twist(50, 100)
+
+
+
+
+datacreator.py
+
+iex -S mix
+
+import Ecto.Query
+
+{:ok, _pid} = PhaedrusDB.Chain.start_link([])
+
+PhaedrusDB.CSVParser.parse_file("/home/trucker/PhaedrusDB/PhaedrusDB/large_dataset.csv")
+
+
+
+
+
+
+
+
+

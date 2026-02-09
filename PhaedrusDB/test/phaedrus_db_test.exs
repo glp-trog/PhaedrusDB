@@ -1,8 +1,8 @@
 defmodule PhaedrusDBTest do
-  use ExUnit.Case
+  use PhaedrusDB.DataCase, async: true
   doctest PhaedrusDB
 
-  test "basic test" do
-    assert true
+  test "ping" do
+    assert PhaedrusDB.ping() == :pong
   end
 end

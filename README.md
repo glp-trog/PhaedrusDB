@@ -20,12 +20,39 @@ PhaedrusDB is a robust database solution for high-performance data handling.
 - `PhaedrusDB.Repo.aggregate(PhaedrusDB.Model, :count, :id)`: Count rows.
 - `PhaedrusDB.Repo.get(PhaedrusDB.Model, id)`: Retrieve a record by ID.
 
-## Setup Instructions
-1. Install Elixir and PostgreSQL.
-2. Clone the repository: `https://github.com/glp-trog/PhaedrusDB`.
-3. Navigate to the project directory: `cd PhaedrusDB`.
-4. Install dependencies: 'mix deps.get`.
-5. Setup database: `mix ecto.create && mix ecto.migrate`.
+## Quickstart (Windows)
+
+### 0) Toolchain note (important)
+You need **matching Erlang/OTP + Elixir** builds.
+
+If you have Erlang/OTP 28 installed, install an Elixir build compiled for OTP 28.
+A mismatched combo (e.g. Elixir compiled for OTP 25 running on OTP 28) can break `mix deps.get`.
+
+### 1) Start Postgres (recommended)
+
+From repo root:
+```bash
+docker compose up -d
+```
+
+### 2) Install deps + create DB + migrate
+
+```bash
+cd PhaedrusDB
+mix deps.get
+mix ecto.create
+mix ecto.migrate
+```
+
+### 3) Run tests
+
+```bash
+mix test
+```
+
+Env overrides:
+- `PHAEDRUS_DB_URL` (dev)
+- `PHAEDRUS_TEST_DB_URL` (test)
 
 ## Dependencies
 - Elixir `~> 1.14`

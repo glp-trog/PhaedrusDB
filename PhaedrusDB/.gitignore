@@ -1,0 +1,10 @@
+# Deps
+/deps
+/_build
+/.elixir_ls
+
+# Env
+.env
+
+# Logs
+*.log
