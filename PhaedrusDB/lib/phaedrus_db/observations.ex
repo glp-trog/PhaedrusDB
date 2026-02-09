@@ -97,6 +97,17 @@ defmodule PhaedrusDB.Observations do
         _ -> q
       end
 
+    q =
+      case opts["before"] do
+        s when is_binary(s) and byte_size(s) > 0 ->
+          case DateTime.from_iso8601(s) do
+            {:ok, dt, _} -> from o in q, where: o.observed_at < ^dt
+            _ -> q
+          end
+
+        _ -> q
+      end
+
     {:ok, Repo.all(q)}
   end
 

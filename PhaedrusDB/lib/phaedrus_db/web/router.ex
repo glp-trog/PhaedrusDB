@@ -148,12 +148,18 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
-  # GET /observations/recent?source=...&tag=...&since=...&limit=...
+  # GET /observations/recent?source=...&tag=...&since=...&before=...&limit=...
   # IMPORTANT: this must be defined before /observations/:content_id
   get "/observations/recent" do
     case PhaedrusDB.observations_recent(conn.params) do
       {:ok, items} ->
-        send_json(conn, 200, %{observations: Enum.map(items, &obs_json/1)})
+        next_before =
+          case List.last(items) do
+            nil -> nil
+            last -> last.observed_at
+          end
+
+        send_json(conn, 200, %{observations: Enum.map(items, &obs_json/1), next_before: next_before})
 
       {:error, reason} ->
         send_json(conn, 400, %{error: inspect(reason)})

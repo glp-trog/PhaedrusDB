@@ -76,8 +76,9 @@ mix run --no-halt
   - returns `{ content_id, proof?, observation: {...} }`
 - `GET /observations/:content_id?limit=50`
   - returns `{ content_id, observations:[...] }`
-- `GET /observations/recent?source=...&tag=...&since=...&limit=...`
-  - returns `{ observations:[...] }` (each item includes `content_id`)
+- `GET /observations/recent?source=...&tag=...&since=...&before=...&limit=...`
+  - returns `{ observations:[...], next_before }` (each item includes `content_id`)
+  - pagination: pass `before=<next_before>` to fetch the next page
 - `GET /sources?since=...&limit=...`
   - returns `{ sources:[{source,count,last_observed_at}] }`
 
