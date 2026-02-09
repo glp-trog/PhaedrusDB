@@ -1,114 +1,110 @@
 # PhaedrusDB
 
-PhaedrusDB is a robust database solution for high-performance data handling.
+PhaedrusDB is a **content‑addressed JSONB store** (Postgres + Elixir/Ecto) with **BIP340 Schnorr signatures** and an **observations/timeline** layer.
 
-## Features
-- **Designed for Data Integrity and Security**.
-- **High Performance:** Optimized for 100K-300K transactions per second (TPS).
-- **Unique Indexing:** Data indexed using cryptographic signatures for rapid retrieval.
-- **Elixir-Based:** Built using Elixir and Ecto for scalability and concurrency.
-- **Cryptographic Indexing**: Assigns unique public keys to data entries for ultra-fast lookups.
-- **Easily Extendable**: Support for videos, images, and structured data.
-- **Optimized for Scalability**: Hybrid compression and retrieval schemes.
+It’s aimed at ETL/OSINT pipelines, audit trails, and “proof of publication” workflows where you want:
+- deterministic IDs for payloads (dedupe + stable references)
+- optional signatures (tamper‑evidence / authorship)
+- a timeline of where/when something was observed
 
-## Commands
-- `mix ecto.create`: Create the database.
-- `mix ecto.migrate`: Run database migrations.
-- `iex -S mix`: Start the interactive Elixir shell.
+## Core concepts
 
-## Content-addressed JSONB (current)
-PhaedrusDB currently supports storing JSONB payloads addressed by a cryptographic content hash.
+### Content‑addressed entries
+- You submit a JSON payload.
+- We canonicalize it deterministically and compute:
+  - `content_hash = sha256(canonical_bytes(payload))`
+  - `content_id = base64url(content_hash)`
+- That `content_id` is the stable identifier for the payload.
 
-Example (in `iex -S mix`):
-```elixir
-{:ok, res} = PhaedrusDB.put(%{"hello" => "world", "n" => 1})
-res.content_id
-{:ok, entry} = PhaedrusDB.get(res.content_id)
-entry.payload
-```
-
-Under the hood:
-- payload is canonicalized deterministically
-- `content_hash = sha256(canonical_bytes(payload))`
-- `content_id` is base64url(hash)
-
-## Schnorr signatures (BIP340, secp256k1)
-PhaedrusDB can optionally sign entries (tamper-evidence/authorship) using **BIP340 Schnorr** over secp256k1.
+### Schnorr signatures (BIP340, secp256k1)
+Entries can be signed (tamper‑evidence / authorship) using **BIP340 Schnorr**.
 
 Key storage (local file):
 - default: `./phaedrus_key.json`
 - override with `PHAEDRUS_KEY_PATH`
 
-**Back up this key file.** Changing it changes signing identity.
+Back up this key file. Changing it changes the signing identity.
+
+### Observations (timeline / sightings)
+Observations are separate rows that point at an immutable entry by `content_id` (via `content_hash`).
+
+This is the “ETL/OSINT wedge”: you can keep appending sightings from different sources without mutating the payload.
+
+---
 
 ## HTTP API
 
-Start the server:
-```bash
-set PHAEDRUS_DB_URL=postgres://postgres:YOURPASS@localhost:5432/phaedrus_db
+Default port: `4007` (override with `PHAEDRUS_HTTP_PORT`).
+
+### Start the server (PowerShell)
+
+```powershell
+cd C:\Users\mr-ga\scripts\PhaedrusDB\PhaedrusDB
+$env:PHAEDRUS_DB_URL = "postgres://postgres:YOURPASS@localhost:5432/phaedrus_db"
+
 mix deps.get
 mix ecto.create
 mix ecto.migrate
 mix run --no-halt
 ```
 
-Endpoints:
+### Endpoints
+
+**Health**
 - `GET /health`
-- `POST /entries` with JSON `{ "payload": { ... }, "sign": true|false }` → `{ "content_id": "...", "proof"?: {...} }`
-- `GET /entries/:content_id` → `{ content_id, payload, inserted_at, pubkey_b64?, sig_b64?, proof }`
-- `GET /proof/:content_id` → `{ content_id, proof }` (no payload)
-- `POST /entries/:content_id/sign` → `{ content_id, pubkey_b64, sig_b64 }`
-- `POST /entries/:content_id/verify` → `{ content_id, ok }` (requires stored signature)
-- `POST /verify` with JSON `{ content_id, pubkey_b64, sig_b64 }` → `{ content_id, ok }` (stateless)
 
-Observations (timeline/sightings):
-- `POST /observe` with JSON `{ content_id, source, observed_at?, url?, notes?, tags?, meta? }`
-- `POST /observe` with JSON `{ payload, sign?: true|false, source, observed_at?, url?, notes?, tags?, meta? }`
-- `GET /observations/:content_id?limit=50` → `{ content_id, observations:[...] }`
+**Entries**
+- `POST /entries` with JSON `{ "payload": { ... }, "sign": true|false }`
+  - returns `{ "content_id": "...", "proof"?: {content_id,pubkey_b64,sig_b64} }`
+- `GET /entries/:content_id`
+  - returns `{ content_id, payload, inserted_at, pubkey_b64?, sig_b64?, proof }`
+- `GET /proof/:content_id` (no payload)
+  - returns `{ content_id, proof }`
+- `POST /entries/:content_id/sign`
+  - returns `{ content_id, pubkey_b64, sig_b64 }`
+- `POST /entries/:content_id/verify` (requires stored signature)
+  - returns `{ content_id, ok }`
 
-Default port: `4007` (override with `PHAEDRUS_HTTP_PORT`).
+**Stateless verify (portable proofs)**
+- `POST /verify` with JSON `{ content_id, pubkey_b64, sig_b64 }`
+  - returns `{ content_id, ok }`
+
+**Observations (timeline/sightings)**
+- `POST /observe`
+  - either `{ content_id, source, observed_at?, url?, notes?, tags?, meta? }`
+  - or `{ payload, sign?: true|false, source, observed_at?, url?, notes?, tags?, meta? }`
+  - returns `{ content_id, proof?, observation: {...} }`
+- `GET /observations/:content_id?limit=50`
+  - returns `{ content_id, observations:[...] }`
+
+---
 
 ## Quickstart (Windows)
 
 ### 0) Toolchain note (important)
 You need **matching Erlang/OTP + Elixir** builds.
 
-If you have Erlang/OTP 28 installed, install an Elixir build compiled for OTP 28.
-A mismatched combo (e.g. Elixir compiled for OTP 25 running on OTP 28) can break `mix deps.get`.
+Example good state:
+- Erlang/OTP 28
+- Elixir compiled for OTP 28
 
-### 1) Start Postgres (recommended)
+### 1) Postgres
+Install Postgres locally and ensure it’s running on `localhost:5432`.
 
-From repo root:
-```bash
-docker compose up -d
-```
+### 2) Run tests
+```powershell
+cd C:\Users\mr-ga\scripts\PhaedrusDB\PhaedrusDB
+$env:PHAEDRUS_TEST_DB_URL = "postgres://postgres:YOURPASS@localhost:5432/phaedrus_db_test"
+$env:MIX_ENV = "test"
 
-### 2) Install deps + create DB + migrate
-
-```bash
-cd PhaedrusDB
-mix deps.get
 mix ecto.create
 mix ecto.migrate
-```
-
-### 3) Run tests
-
-```bash
 mix test
+
+Remove-Item Env:\MIX_ENV
 ```
 
-Env overrides:
-- `PHAEDRUS_DB_URL` (dev)
-- `PHAEDRUS_TEST_DB_URL` (test)
-
-## Dependencies
-- Elixir `~> 1.14`
-- Ecto `~> 3.12`
-- PostgreSQL `>= 12.0`
-
-## Testing
-Run tests with: `mix test`.
+---
 
 ## License
-This project is licensed under the MIT License.
+MIT (add a `LICENSE` file if you want GitHub to show it explicitly).
