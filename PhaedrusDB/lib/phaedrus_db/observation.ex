@@ -27,5 +27,6 @@ defmodule PhaedrusDB.Observation do
     |> validate_length(:source, min: 1, max: 200)
     |> validate_length(:url, max: 2000)
     |> validate_length(:notes, max: 4000)
+    |> unique_constraint(:observed_at, name: :observations_idempotency_uq)
   end
 end

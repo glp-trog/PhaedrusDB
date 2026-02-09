@@ -8,6 +8,7 @@ defmodule PhaedrusDB.Observations do
   import Ecto.Query, warn: false
 
   alias PhaedrusDB.{CryptoId, Observation, Repo}
+  alias PhaedrusDB.ObservationTupleQuery
 
   @doc "Create an observation for a content_id." 
   def observe(content_id, attrs) when is_map(attrs) do
@@ -17,9 +18,41 @@ defmodule PhaedrusDB.Observations do
         |> Map.put_new("observed_at", DateTime.utc_now() |> DateTime.truncate(:second))
         |> Map.put("content_hash", hash)
 
-      %Observation{}
-      |> Observation.changeset(attrs2)
-      |> Repo.insert()
+      tuple = %{
+        content_hash: hash,
+        source: Map.get(attrs2, "source"),
+        url: Map.get(attrs2, "url"),
+        observed_at: Map.get(attrs2, "observed_at")
+      }
+
+      existing = get_observation_by_tuple(tuple)
+
+      # Fast path: if it already exists, return it (idempotent retries).
+      case existing do
+        %Observation{} = existing ->
+          {:ok, existing}
+
+        nil ->
+          changeset = Observation.changeset(%Observation{}, attrs2)
+
+          # Race-safe insert: if a duplicate gets inserted concurrently, do nothing then fetch.
+          case Repo.insert(changeset,
+                 on_conflict: :nothing,
+                 conflict_target: [:content_hash, :source, :url, :observed_at]
+               ) do
+            {:ok, %Observation{} = inserted} when not is_nil(inserted.id) ->
+              {:ok, inserted}
+
+            {:ok, %Observation{id: nil}} ->
+              case get_observation_by_tuple(tuple) do
+                %Observation{} = existing -> {:ok, existing}
+                nil -> {:error, :conflict_not_found}
+              end
+
+            other ->
+              other
+          end
+      end
     end
   end
 
@@ -41,6 +74,8 @@ defmodule PhaedrusDB.Observations do
 
   defp b64(nil), do: nil
   defp b64(bin) when is_binary(bin), do: Base.encode64(bin)
+
+  defp get_observation_by_tuple(tuple), do: ObservationTupleQuery.get_by_tuple(tuple)
 
   @doc "List observations for a content_id (newest first)." 
   def list_for(content_id, limit \\ 50) do
