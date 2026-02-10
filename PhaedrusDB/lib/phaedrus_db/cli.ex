@@ -19,7 +19,19 @@ defmodule PhaedrusDB.CLI do
         observe_ndjson(url, api_key, path, mode)
 
       ["recent" | rest] ->
-        {opts, _} = OptionParser.parse!(rest, strict: [url: :string, api_key: :string, limit: :integer, source: :string, tag: :keep])
+        {opts, _} =
+          OptionParser.parse!(rest,
+            strict: [
+              url: :string,
+              api_key: :string,
+              limit: :integer,
+              source: :string,
+              tag: :keep,
+              since: :string,
+              before: :string
+            ]
+          )
+
         url = opts[:url] || System.get_env("PHAEDRUS_URL") || @default_url
         api_key = opts[:api_key] || System.get_env("PHAEDRUS_API_KEY")
         params = opts_to_params(opts)
@@ -66,6 +78,8 @@ defmodule PhaedrusDB.CLI do
     params = %{}
     params = if opts[:limit], do: Map.put(params, "limit", opts[:limit]), else: params
     params = if opts[:source], do: Map.put(params, "source", opts[:source]), else: params
+    params = if opts[:since], do: Map.put(params, "since", opts[:since]), else: params
+    params = if opts[:before], do: Map.put(params, "before", opts[:before]), else: params
 
     params =
       case opts[:tag] do
@@ -82,7 +96,7 @@ defmodule PhaedrusDB.CLI do
 
     Commands:
       phaedrus_db observe-ndjson <path> [--url <baseUrl>] [--api-key <key>] [--mode ndjson|json]
-      phaedrus_db recent [--url <baseUrl>] [--api-key <key>] [--limit N] [--source S] [--tag T --tag T]
+      phaedrus_db recent [--url <baseUrl>] [--api-key <key>] [--limit N] [--source S] [--tag T --tag T] [--since ISO] [--before ISO]
 
     Env:
       PHAEDRUS_URL      Base URL (default #{@default_url})

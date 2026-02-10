@@ -113,6 +113,10 @@ Use it:
 
 # Recent observations
 .\phaedrus_db recent --limit 20 --tag osint --tag demo
+
+# Pagination / time filters
+.\phaedrus_db recent --limit 20 --before 2026-02-09T13:35:41Z
+.\phaedrus_db recent --since 2026-02-01T00:00:00Z
 ```
 
 ## Quickstart (Windows)

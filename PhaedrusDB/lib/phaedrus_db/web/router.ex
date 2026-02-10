@@ -72,6 +72,37 @@ defmodule PhaedrusDB.Web.Router do
     end
   end
 
+  # GET /bundle/:content_id?limit=20
+  # Convenience endpoint for a shareable snapshot:
+  # - entry payload
+  # - proof bundle
+  # - recent observations for this content
+  get "/bundle/:content_id" do
+    limit = (conn.params["limit"] || "20") |> to_int(20) |> min(200) |> max(1)
+
+    case PhaedrusDB.get(content_id) do
+      {:ok, entry} ->
+        case PhaedrusDB.observations(content_id, limit) do
+          {:ok, items} ->
+            send_json(conn, 200, %{
+              content_id: content_id,
+              entry: %{payload: entry.payload, inserted_at: entry.inserted_at},
+              proof: proof(content_id, entry),
+              observations: Enum.map(items, &obs_json/1)
+            })
+
+          {:error, reason} ->
+            send_json(conn, 400, %{error: inspect(reason)})
+        end
+
+      {:error, :not_found} ->
+        send_json(conn, 404, %{error: "not_found"})
+
+      {:error, reason} ->
+        send_json(conn, 400, %{error: inspect(reason)})
+    end
+  end
+
   # POST /entries/:content_id/sign
   post "/entries/:content_id/sign" do
     case PhaedrusDB.sign(content_id) do

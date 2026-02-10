@@ -10,6 +10,7 @@
 # Local secrets/keys
 phaedrus_key.json
 ingest.ndjson
+lobstermax_proof.json
 ./phaedrus_db
 
 # Env
