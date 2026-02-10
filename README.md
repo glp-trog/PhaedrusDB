@@ -37,6 +37,9 @@ This is the “ETL/OSINT wedge”: you can keep appending sightings from differe
 A full end-to-end demo script lives at:
 - `PhaedrusDB/demo/demo_lobstermax.ps1`
 
+A web-scraping → NDJSON ingest demo script lives at:
+- `PhaedrusDB/demo/webscrape_to_phaedrus.ps1`
+
 It will:
 - create + sign an entry
 - save a portable receipt JSON
@@ -49,6 +52,18 @@ Run:
 cd C:\Users\mr-ga\scripts\PhaedrusDB\PhaedrusDB
 .\demo\demo_lobstermax.ps1 -BaseUrl http://localhost:4007 -ApiKey change-me-please
 ```
+
+Web scraping ingest (NDJSON):
+```powershell
+cd C:\Users\mr-ga\scripts\PhaedrusDB\PhaedrusDB
+.\demo\webscrape_to_phaedrus.ps1 -BaseUrl http://localhost:4007 -ApiKey change-me-please
+
+# then query
+curl.exe -sS "http://localhost:4007/observations/recent?source=demo-scraper&tag=scrape&limit=10" -H "x-phaedrus-key: change-me-please"
+```
+
+Note: the scraper keeps the entry payload stable by NOT hashing volatile timestamps.
+Timestamps and response headers are stored in the observation `meta` instead.
 
 ---
 
