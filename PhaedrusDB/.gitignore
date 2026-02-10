@@ -11,7 +11,7 @@
 phaedrus_key.json
 ingest.ndjson
 lobstermax_proof.json
-./phaedrus_db
+phaedrus_db
 
 # Env
 .env
