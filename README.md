@@ -32,6 +32,26 @@ This is the “ETL/OSINT wedge”: you can keep appending sightings from differe
 
 ---
 
+## Demo
+
+A full end-to-end demo script lives at:
+- `PhaedrusDB/demo/demo_lobstermax.ps1`
+
+It will:
+- create + sign an entry
+- save a portable receipt JSON
+- append an observation
+- verify detached (stateless)
+- fetch a single shareable bundle (payload + proof + observations)
+
+Run:
+```powershell
+cd C:\Users\mr-ga\scripts\PhaedrusDB\PhaedrusDB
+.\demo\demo_lobstermax.ps1 -BaseUrl http://localhost:4007 -ApiKey change-me-please
+```
+
+---
+
 ## HTTP API
 
 ### Optional auth
