@@ -39,6 +39,38 @@ defmodule PhaedrusDB.CLI do
         r = Req.get!(url <> "/observations/recent", headers: headers(api_key), params: params)
         IO.puts(Jason.encode!(r.body, pretty: true))
 
+      ["bundle", content_id | rest] ->
+        {opts, _} = OptionParser.parse!(rest, strict: [url: :string, api_key: :string, out: :string, limit: :integer])
+        url = opts[:url] || System.get_env("PHAEDRUS_URL") || @default_url
+        api_key = opts[:api_key] || System.get_env("PHAEDRUS_API_KEY")
+        limit = opts[:limit] || 20
+
+        r = Req.get!(url <> "/bundle/" <> content_id, headers: headers(api_key), params: %{limit: limit})
+        json = Jason.encode!(r.body, pretty: true)
+
+        if is_binary(opts[:out]) do
+          File.write!(opts[:out], json <> "\n")
+        else
+          IO.puts(json)
+        end
+
+      ["verify-receipt", path | rest] ->
+        {opts, _} = OptionParser.parse!(rest, strict: [url: :string, api_key: :string])
+        url = opts[:url] || System.get_env("PHAEDRUS_URL") || @default_url
+        api_key = opts[:api_key] || System.get_env("PHAEDRUS_API_KEY")
+
+        receipt = Jason.decode!(File.read!(path))
+        {cid, pub_b64, sig_b64} = extract_receipt(receipt)
+
+        r =
+          Req.post!(
+            url <> "/verify",
+            headers: headers(api_key) ++ [{"content-type", "application/json"}],
+            json: %{content_id: cid, pubkey_b64: pub_b64, sig_b64: sig_b64}
+          )
+
+        IO.puts(Jason.encode!(r.body, pretty: true))
+
       _ ->
         usage()
         System.halt(2)
@@ -90,6 +122,28 @@ defmodule PhaedrusDB.CLI do
     params
   end
 
+  defp extract_receipt(map) when is_map(map) do
+    cid = map["content_id"] || get_in(map, ["proof", "content_id"])
+
+    pub_b64 =
+      map["pubkey_b64"] ||
+        get_in(map, ["proof", "pubkey_b64"]) ||
+        get_in(map, ["entry", "pubkey_b64"]) ||
+        get_in(map, ["entry", "proof", "pubkey_b64"])
+
+    sig_b64 =
+      map["sig_b64"] ||
+        get_in(map, ["proof", "sig_b64"]) ||
+        get_in(map, ["entry", "sig_b64"]) ||
+        get_in(map, ["entry", "proof", "sig_b64"])
+
+    if is_binary(cid) and is_binary(pub_b64) and is_binary(sig_b64) do
+      {cid, pub_b64, sig_b64}
+    else
+      raise "receipt missing required fields (content_id, pubkey_b64, sig_b64)"
+    end
+  end
+
   defp usage do
     IO.puts("""
     PhaedrusDB CLI
@@ -97,6 +151,8 @@ defmodule PhaedrusDB.CLI do
     Commands:
       phaedrus_db observe-ndjson <path> [--url <baseUrl>] [--api-key <key>] [--mode ndjson|json]
       phaedrus_db recent [--url <baseUrl>] [--api-key <key>] [--limit N] [--source S] [--tag T --tag T] [--since ISO] [--before ISO]
+      phaedrus_db bundle <content_id> [--url <baseUrl>] [--api-key <key>] [--limit N] [--out bundle.json]
+      phaedrus_db verify-receipt <path.json> [--url <baseUrl>] [--api-key <key>]
 
     Env:
       PHAEDRUS_URL      Base URL (default #{@default_url})

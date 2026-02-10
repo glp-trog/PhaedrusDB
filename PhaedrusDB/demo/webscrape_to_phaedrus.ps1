@@ -75,10 +75,57 @@ function Get-PageSummary([string]$u) {
   }
 }
 
+function CurlJson([string]$method, [string]$url, [string]$bodyJson=$null) {
+  $args = @('-sS', '-X', $method, $url)
+  if ($ApiKey -and $ApiKey.Length -gt 0) { $args += @('-H', "x-phaedrus-key: $ApiKey") }
+  if ($bodyJson) { $args += @('-H', 'Content-Type: application/json'); $args += @('-d', $bodyJson) }
+  $out = & curl.exe @args
+  if ($LASTEXITCODE -ne 0) { throw "curl failed ($LASTEXITCODE) calling $url" }
+  return ($out | ConvertFrom-Json)
+}
+
+function Get-LatestContentIdForUrl([string]$u) {
+  # Best-effort: fetch recent observations and pick the newest one for this URL.
+  $recentUrl = "$BaseUrl/observations/recent?source=demo-scraper&tag=scrape&limit=200"
+  $recent = CurlJson 'GET' $recentUrl
+  foreach ($o in $recent.observations) {
+    if ($o.url -eq $u) { return ("" + $o.content_id).Trim() }
+  }
+  return $null
+}
+
+function Get-Entry([string]$contentId) {
+  CurlJson 'GET' "$BaseUrl/entries/$contentId"
+}
+
 $lines = New-Object System.Collections.Generic.List[string]
 foreach ($u in $urls) {
   try {
     $obj = Get-PageSummary $u
+
+    # Change detection: if latest entry for this URL has the same content_sha256, only append an observation.
+    $latestCid = Get-LatestContentIdForUrl $u
+    if ($latestCid) {
+      try {
+        $entry = Get-Entry $latestCid
+        $prevSha = $entry.payload.content_sha256
+        $newSha = $obj.payload.content_sha256
+
+        if ($prevSha -and $newSha -and ($prevSha -eq $newSha)) {
+          $obj = @{
+            content_id = $latestCid
+            source = $obj.source
+            url = $obj.url
+            tags = $obj.tags
+            meta = $obj.meta
+            observed_at = $obj.meta.fetched_at
+          }
+        }
+      } catch {
+        # ignore lookup failures; fall back to payload ingest
+      }
+    }
+
     $lines.Add(($obj | ConvertTo-Json -Depth 10 -Compress))
     Write-Host "Scraped: $u"
   } catch {
